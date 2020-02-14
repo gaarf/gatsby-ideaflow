@@ -1,23 +1,22 @@
-import React, { useState, useRef } from "react"
-import { Editor, EditorState } from "draft-js"
+import React, { useState, useRef, useEffect } from "react";
+import { Editor, EditorState } from "draft-js";
+import "draft-js/dist/Draft.css";
 
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable jsx-a11y/interactive-supports-focus */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 
 export default function() {
-  const [editorState, setEditorState] = useState(EditorState.createEmpty())
+  const [editorState, setEditorState] = useState(EditorState.createEmpty());
+  const editorRef = useRef();
 
-  const editorRef = useRef()
+  const handleChange = s => setEditorState(s);
+  const focus = () => editorRef.current.focus();
 
-  const onChange = s => {
-    console.log(editorRef.current, s)
-    setEditorState(s)
-  }
+  useEffect(focus, []);
 
   return (
     <div
-      role="textbox"
-      onClick={() => editorRef.current.focus()}
+      onClick={focus}
       style={{
         border: "1px inset #CCC",
         padding: "3px",
@@ -27,7 +26,11 @@ export default function() {
         cursor: "text",
       }}
     >
-      <Editor editorState={editorState} onChange={onChange} ref={editorRef} />
+      <Editor
+        editorState={editorState}
+        onChange={handleChange}
+        ref={editorRef}
+      />
     </div>
-  )
+  );
 }
