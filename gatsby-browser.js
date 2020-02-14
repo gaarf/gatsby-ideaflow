@@ -4,4 +4,8 @@
  * See: https://www.gatsbyjs.org/docs/browser-apis/
  */
 
-// You can delete this file if you're not using it
+import { setConfig } from 'react-hot-loader';
+
+setConfig({
+    showReactDomPatchNotification: false
+});
