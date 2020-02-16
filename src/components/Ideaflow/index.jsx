@@ -8,22 +8,21 @@ import useKeys from "./useKeys";
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 
 export default function() {
-  // get our CompositeDraftDecorator
-  const decorator = useDecorator();
-
-  // store the state of the editor and a ref
-  const [editorState, setEditorState] = useState(
-    EditorState.createEmpty(decorator)
-  );
   const editorRef = useRef();
-
-  // a function to focus the editor
+  const [decorator, updateEntities] = useDecorator();
+  const [state, setState] = useState(EditorState.createEmpty(decorator));
+  const setEditorState = useCallback(
+    s => {
+      setState(updateEntities(s));
+    },
+    [setState, updateEntities]
+  );
   const focus = useCallback(() => editorRef.current.focus(), [editorRef]);
 
   // focus the editor when the component mounts
   useEffect(focus, []);
 
-  // get keyboard functions
+  // keyboard functions
   const { keyBindingFn, handleKeyCommand } = useKeys(setEditorState);
 
   return (
@@ -41,7 +40,7 @@ export default function() {
     >
       <Editor
         ref={editorRef}
-        editorState={editorState}
+        editorState={state}
         keyBindingFn={keyBindingFn}
         handleKeyCommand={handleKeyCommand}
         onChange={setEditorState}

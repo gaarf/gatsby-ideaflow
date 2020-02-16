@@ -1,12 +1,23 @@
 import { useMemo } from "react";
-import { CompositeDecorator } from "draft-js";
-import { hashtagSpan } from "./Spans";
+import {
+  CompositeDecorator,
+  EditorState,
+  SelectionState,
+  Modifier,
+} from "draft-js";
+import Span from "./Span";
 import useData from "./useData";
 
-const HASHTAG_REGEX = /#[\w]+/g;
-
 function hashtagStrategy(contentBlock, callback) {
-  findWithRegex(HASHTAG_REGEX, contentBlock, callback);
+  findWithRegex(/#[\w]*/g, contentBlock, callback);
+}
+
+function nameStrategy(contentBlock, callback) {
+  findWithRegex(/@[\w-]+/g, contentBlock, callback);
+}
+
+function relationStrategy(contentBlock, callback) {
+  findWithRegex(/<>[A-Z][\w-]*(\s[A-Z][\w-]*)*/g, contentBlock, callback);
 }
 
 function findWithRegex(regex, contentBlock, callback) {
@@ -18,22 +29,68 @@ function findWithRegex(regex, contentBlock, callback) {
   }
 }
 
+function entityStrategy(contentBlock, callback) {
+  contentBlock.findEntityRanges(character => {
+    return character.getEntity() !== null;
+  }, callback);
+}
 
 export default function useDecorator() {
   const data = useData();
 
   return useMemo(() => {
-    const { hashtags } = data;
+    const { hashtags, names, relations } = data;
 
-    const decorator = new CompositeDecorator([
-      {
-        strategy: hashtagStrategy,
-        component: hashtagSpan(hashtags),
+    return [
+      new CompositeDecorator([
+        {
+          strategy: hashtagStrategy,
+          component: Span,
+          props: { prefix: '#', autocomplete: hashtags },
+        },
+        {
+          strategy: nameStrategy,
+          component: Span,
+          props: { prefix: '@', autocomplete: names },
+        },
+        {
+          strategy: relationStrategy,
+          component: Span,
+          props: { prefix: '<>', autocomplete: relations },
+        },
+      ]),
+
+      function updateEntities(editorState) {
+        let content = editorState.getCurrentContent();
+        const blocks = content.getBlockMap();
+        const selection = editorState.getSelection();
+
+        blocks.forEach((block, blockKey) => {
+          const update = (start, end) => {
+            let entityKey = block.getEntityAt(start);
+            if (!entityKey) {
+              content = content.createEntity("ENTITY", "IMMUTABLE");
+              entityKey = content.getLastCreatedEntityKey();
+              console.log("new entity!", entityKey);
+            }
+            content = Modifier.applyEntity(
+              content,
+              SelectionState.createEmpty(blockKey).merge({
+                anchorOffset: start,
+                focusKey: blockKey,
+                focusOffset: end,
+              }),
+              entityKey
+            );
+          };
+          hashtagStrategy(block, update);
+          nameStrategy(block, update);
+          relationStrategy(block, update);
+        });
+
+        const updatedState = EditorState.push(editorState, content, "apply-entity");
+        return EditorState.acceptSelection(updatedState, selection)
       },
-    ]);
-
-    console.log(decorator);
-
-    return decorator;
+    ];
   }, [data]);
 }
