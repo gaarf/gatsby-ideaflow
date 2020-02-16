@@ -1,27 +1,35 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Editor, EditorState } from "draft-js";
 import "draft-js/dist/Draft.css";
-import useData from "./useData";
+import useDecorator from "./useDecorator";
+import useKeys from "./useKeys";
 
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 
 export default function() {
-  const [editorState, setEditorState] = useState(EditorState.createEmpty());
+  // get our CompositeDraftDecorator
+  const decorator = useDecorator();
+
+  // store the state of the editor and a ref
+  const [editorState, setEditorState] = useState(
+    EditorState.createEmpty(decorator)
+  );
   const editorRef = useRef();
 
-  const handleChange = s => setEditorState(s);
-  const focus = () => editorRef.current.focus();
+  // a function to focus the editor
+  const focus = useCallback(() => editorRef.current.focus(), [editorRef]);
 
+  // focus the editor when the component mounts
   useEffect(focus, []);
 
-  const data = useData();
-  console.log(data);
+  // get keyboard functions
+  const { keyBindingFn, handleKeyCommand } = useKeys(setEditorState);
 
   return (
     <div
-      onClick={focus}
       style={{
+        // mimic a textarea
         border: "1px inset #CCC",
         padding: "3px",
         borderRadius: "3px",
@@ -29,11 +37,14 @@ export default function() {
         minHeight: "10em",
         cursor: "text",
       }}
+      onClick={focus} // clicking the container focuses the editor
     >
       <Editor
-        editorState={editorState}
-        onChange={handleChange}
         ref={editorRef}
+        editorState={editorState}
+        keyBindingFn={keyBindingFn}
+        handleKeyCommand={handleKeyCommand}
+        onChange={setEditorState}
       />
     </div>
   );

@@ -1,7 +1,10 @@
 import { useStaticQuery, graphql } from "gatsby";
+import { useMemo } from "react";
 
-export default () => {
-  const { allAutocompleteJson: { nodes } } = useStaticQuery(graphql`
+export default function useAutocompleteData() {
+  const {
+    allAutocompleteJson: { nodes },
+  } = useStaticQuery(graphql`
     query MyQuery {
       allAutocompleteJson {
         nodes {
@@ -11,8 +14,15 @@ export default () => {
       }
     }
   `);
-  return nodes.reduce((memo, { key, value }) => ({
-    ...memo,
-    [key]: value,
-  }), {});
-}
+  return useMemo(
+    () =>
+      nodes.reduce(
+        (memo, { key, value }) => ({
+          ...memo,
+          [key]: value,
+        }),
+        {}
+      ),
+    [nodes]
+  );
+};
