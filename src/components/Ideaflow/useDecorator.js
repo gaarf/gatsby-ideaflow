@@ -5,14 +5,14 @@ import {
   SelectionState,
   Modifier,
 } from "draft-js";
-import Span from "./Span";
+import { mkSpan } from "./Span";
 import useData from "./useData";
 
 function hashtagStrategy(contentBlock, callback) {
-  findWithRegex(/#[\w]*/g, contentBlock, callback);
+  findWithRegex(/#[\w]+/g, contentBlock, callback);
 }
 
-function nameStrategy(contentBlock, callback) {
+function peopleStrategy(contentBlock, callback) {
   findWithRegex(/@[\w-]+/g, contentBlock, callback);
 }
 
@@ -29,38 +29,38 @@ function findWithRegex(regex, contentBlock, callback) {
   }
 }
 
-function entityStrategy(contentBlock, callback) {
-  contentBlock.findEntityRanges(character => {
-    return character.getEntity() !== null;
-  }, callback);
-}
+// function entityStrategy(contentBlock, callback) {
+//   contentBlock.findEntityRanges(character => {
+//     return character.getEntity() !== null;
+//   }, callback);
+// }
 
-export default function useDecorator() {
+export default function useDecorator(onSuggestion) {
   const data = useData();
 
   return useMemo(() => {
-    const { hashtags, names, relations } = data;
+    const { hashtags, people, relations } = data;
 
-    return [
-      new CompositeDecorator([
+    return {
+      decorator: new CompositeDecorator([
         {
           strategy: hashtagStrategy,
-          component: Span,
-          props: { prefix: '#', autocomplete: hashtags },
+          component: mkSpan("#"),
+          props: { autocomplete: hashtags, onSuggestion },
         },
         {
-          strategy: nameStrategy,
-          component: Span,
-          props: { prefix: '@', autocomplete: names },
+          strategy: peopleStrategy,
+          component: mkSpan("@"),
+          props: { autocomplete: people, onSuggestion },
         },
         {
           strategy: relationStrategy,
-          component: Span,
-          props: { prefix: '<>', autocomplete: relations },
+          component: mkSpan("<>"),
+          props: { autocomplete: relations, onSuggestion },
         },
       ]),
 
-      function updateEntities(editorState) {
+      updateEntities(editorState) {
         let content = editorState.getCurrentContent();
         const blocks = content.getBlockMap();
         const selection = editorState.getSelection();
@@ -84,13 +84,15 @@ export default function useDecorator() {
             );
           };
           hashtagStrategy(block, update);
-          nameStrategy(block, update);
+          peopleStrategy(block, update);
           relationStrategy(block, update);
         });
 
-        const updatedState = EditorState.push(editorState, content, "apply-entity");
-        return EditorState.acceptSelection(updatedState, selection)
+        return EditorState.acceptSelection(
+          EditorState.push(editorState, content, "apply-entity"),
+          selection
+        );
       },
-    ];
-  }, [data]);
+    };
+  }, [data, onSuggestion]);
 }
