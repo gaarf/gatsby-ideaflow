@@ -50,11 +50,14 @@ export default function() {
 
   const { keyBindingFn, handleKeyCommand } = useKeys(setEditorState);
 
+  const [isClient, setIsClient] = useState(false);
   const focus = () => editorRef.current.focus();
-  useEffect(focus, []);
+  useEffect(() => setIsClient(true), []);
+  useEffect(focus, [isClient]);
 
   return (
     <div
+      key={isClient ? 'client' : 'ssr'}
       style={{
         // mimic a textarea
         border: "1px inset #CCC",
