@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Editor, EditorState, SelectionState } from "draft-js";
 import "draft-js/dist/Draft.css";
 import useDecorator from "./useDecorator";
@@ -26,7 +26,7 @@ export default function() {
           ),
           SelectionState.createEmpty(blockKey).merge({
             anchorOffset: end,
-            focusOffset: end
+            focusOffset: end,
           })
         );
         console.log("onSuggestion", content.getPlainText());
@@ -41,16 +41,16 @@ export default function() {
 
   const [state, setState] = useState(EditorState.createEmpty(decorator));
 
-  const setEditorState = useCallback(
-    s => setState(updateEntities(s)),
-    [setState, updateEntities]
-  );
+  const setEditorState = useCallback(s => setState(updateEntities(s)), [
+    setState,
+    updateEntities,
+  ]);
 
-  hackyRef.current = { state, setEditorState }; // sorry, not sorry
+  hackyRef.current = { state, setEditorState }; // sorry...
 
   const { keyBindingFn, handleKeyCommand } = useKeys(setEditorState);
 
-  const focus = useCallback(() => editorRef.current.focus(), [editorRef]);
+  const focus = () => editorRef.current.focus();
   useEffect(focus, []);
 
   return (
